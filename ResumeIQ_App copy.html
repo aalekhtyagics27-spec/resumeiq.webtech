@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ResumeIQ — AI Resume Analyser</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#080B12; --surface:#0F1320; --card:#111827;
+  --border:#1C2438; --accent:#4F8EF7; --purple:#7C3AED;
+  --green:#10B981; --yellow:#F59E0B; --red:#EF4444;
+  --text:#E2E8F0; --muted:#64748B; --soft:#94A3B8;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ANIMATED BG */
+body::before{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 20% -10%,rgba(79,142,247,.07) 0%,transparent 60%),
+             radial-gradient(ellipse 60% 40% at 80% 110%,rgba(124,58,237,.06) 0%,transparent 60%);
+  pointer-events:none;z-index:0}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:100;background:rgba(8,11,18,.9);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 2rem}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;
+  background:linear-gradient(135deg,#4F8EF7,#7C3AED);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hbadge{font-size:.68rem;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);
+  color:#6EE7B7;padding:3px 10px;border-radius:100px;font-weight:500}
+
+/* HERO */
+.hero{position:relative;z-index:1;text-align:center;padding:4rem 1.5rem 2.5rem}
+.hero h1{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2rem,5vw,3.2rem);
+  line-height:1.1;letter-spacing:-1.5px;margin-bottom:.9rem}
+.hero h1 em{font-style:normal;background:linear-gradient(135deg,#4F8EF7 0%,#7C3AED 55%,#EC4899 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:var(--muted);font-size:1rem;max-width:480px;margin:0 auto;line-height:1.7;font-weight:300}
+.no-key-badge{display:inline-flex;align-items:center;gap:.5rem;margin-top:1rem;
+  background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);
+  border-radius:100px;padding:5px 14px;font-size:.78rem;color:#6EE7B7}
+
+/* CONTAINER */
+.wrap{position:relative;z-index:1;max-width:1050px;margin:0 auto;padding:0 1.5rem 5rem}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:1.4rem}
+.card+.card{margin-top:1rem}
+
+/* SECTION LABEL */
+.sec-label{font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:500;margin-bottom:.55rem}
+
+/* UPLOAD ZONE */
+.drop-zone{background:var(--card);border:1.5px dashed var(--border);border-radius:18px;
+  padding:2.5rem 2rem;text-align:center;cursor:pointer;transition:all .25s;margin-bottom:1rem}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:rgba(79,142,247,.03)}
+.drop-icon{width:56px;height:56px;margin:0 auto .9rem;background:rgba(79,142,247,.1);
+  border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px}
+.drop-zone h3{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:.3rem}
+.drop-zone p{color:var(--muted);font-size:.82rem}
+#fileInput{display:none}
+
+.divider{display:flex;align-items:center;gap:1rem;color:var(--muted);font-size:.75rem;margin:.8rem 0}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* INPUTS */
+textarea,input[type=text],select{width:100%;background:var(--card);border:1.5px solid var(--border);
+  border-radius:13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;
+  padding:.75rem 1rem;outline:none;transition:border-color .2s}
+textarea{resize:vertical;min-height:150px;line-height:1.65}
+textarea:focus,input:focus,select:focus{border-color:var(--accent)}
+textarea::placeholder,input::placeholder{color:var(--muted)}
+select{appearance:none;cursor:pointer}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+@media(max-width:580px){.row2{grid-template-columns:1fr}}
+
+.field{margin-bottom:1rem}
+.field:last-child{margin-bottom:0}
+
+/* ROLE CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
+.chip{padding:5px 14px;border-radius:100px;border:1px solid var(--border);background:var(--card);
+  color:var(--muted);font-size:.78rem;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.chip:hover{border-color:var(--accent);color:var(--text)}
+.chip.on{background:rgba(79,142,247,.12);border-color:var(--accent);color:var(--accent)}
+
+/* FILE TAG */
+.file-tag{display:none;align-items:center;gap:.5rem;background:rgba(16,185,129,.07);
+  border:1px solid rgba(16,185,129,.18);border-radius:9px;padding:.5rem .9rem;
+  margin-bottom:.9rem;font-size:.82rem;color:#6EE7B7}
+.file-tag.show{display:flex}
+
+/* ANALYSE BTN */
+.btn{width:100%;padding:.95rem;background:linear-gradient(135deg,#4F8EF7,#7C3AED);
+  color:#fff;border:none;border-radius:13px;font-family:'Syne',sans-serif;font-weight:700;
+  font-size:1rem;cursor:pointer;transition:opacity .2s;letter-spacing:.3px;position:relative;overflow:hidden}
+.btn:hover{opacity:.9}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* LOADING */
+.loader{display:none;width:100%;height:3px;background:var(--border);border-radius:100px;overflow:hidden;margin:.9rem 0}
+.loader.on{display:block}
+.loader::after{content:'';display:block;width:35%;height:100%;background:linear-gradient(90deg,#4F8EF7,#7C3AED);
+  border-radius:100px;animation:slide 1.4s ease-in-out infinite}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(380%)}}
+
+/* ═══ RESULTS ═══ */
+#results{display:none;margin-top:2.5rem}
+
+.res-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.4rem;flex-wrap:wrap;gap:.8rem}
+.res-hdr h2{font-family:'Syne',sans-serif;font-weight:700;font-size:1.25rem}
+.reset-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);
+  padding:7px 16px;border-radius:100px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.8rem;transition:all .2s}
+.reset-btn:hover{color:var(--text);border-color:var(--soft)}
+
+/* SCORE CARD */
+.score-card{background:var(--card);border:1px solid var(--border);border-radius:18px;
+  padding:1.8rem 2rem;display:flex;align-items:center;gap:2rem;margin-bottom:1rem;flex-wrap:wrap}
+.ring-wrap{position:relative;width:108px;height:108px;flex-shrink:0}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:1.55rem;line-height:1}
+.ring-num span{font-size:.58rem;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400;margin-top:2px}
+.score-info h3{font-family:'Syne',sans-serif;font-size:1.05rem;margin-bottom:.4rem}
+.score-info p{color:var(--soft);font-size:.88rem;line-height:1.65;max-width:500px}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.9rem;margin-bottom:1rem}
+.met{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:1.1rem 1.3rem;position:relative;overflow:hidden}
+.met::before{content:'';position:absolute;top:0;left:0;right:0;height:2.5px}
+.met.g::before{background:var(--green)}
+.met.y::before{background:var(--yellow)}
+.met.r::before{background:var(--red)}
+.met-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:500;margin-bottom:.45rem}
+.met-val{font-family:'Syne',sans-serif;font-weight:700;font-size:1.55rem}
+.met.g .met-val{color:var(--green)}
+.met.y .met-val{color:var(--yellow)}
+.met.r .met-val{color:var(--red)}
+.met-sub{font-size:.75rem;color:var(--muted);margin-top:.25rem}
+.pbar{background:var(--surface);border-radius:100px;height:5px;margin-top:.6rem;overflow:hidden}
+.pfill{height:100%;border-radius:100px;background:linear-gradient(90deg,#4F8EF7,#7C3AED);transition:width 1s ease}
+
+/* 2 COL */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+
+/* TAGS */
+.tags{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.3rem}
+.tag{padding:4px 11px;border-radius:100px;font-size:.75rem;font-weight:500}
+.tag.sk{background:rgba(79,142,247,.12);color:#93C5FD;border:1px solid rgba(79,142,247,.22)}
+.tag.ms{background:rgba(239,68,68,.08);color:#FCA5A5;border:1px solid rgba(239,68,68,.18)}
+.tag.ok{background:rgba(16,185,129,.08);color:#6EE7B7;border:1px solid rgba(16,185,129,.18)}
+
+/* ATS ROWS */
+.ats-row{display:flex;align-items:center;gap:.8rem;margin-bottom:.75rem}
+.ats-lbl{font-size:.8rem;color:var(--soft);min-width:165px}
+.ats-bar{flex:1}
+.ats-num{font-size:.78rem;min-width:34px;text-align:right;font-weight:500}
+
+/* SUGGESTIONS */
+.sug-list{list-style:none;margin-top:.3rem}
+.sug-list li{padding:.65rem 0;border-bottom:1px solid var(--border);font-size:.86rem;
+  color:#CBD5E1;display:flex;gap:.7rem;line-height:1.55}
+.sug-list li:last-child{border-bottom:none}
+.sug-list li::before{content:'→';color:var(--accent);flex-shrink:0}
+
+/* FULL ANALYSIS */
+.analysis-text{font-size:.88rem;line-height:1.85;color:#CBD5E1}
+.analysis-text p{margin-bottom:.9rem}
+.analysis-text p:last-child{margin-bottom:0}
+
+/* SECTION CARD HEADER */
+.ch{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;margin-bottom:.85rem;
+  display:flex;align-items:center;gap:.4rem}
+
+/* GRADE BADGE */
+.grade{display:inline-block;padding:4px 14px;border-radius:100px;font-size:.78rem;font-weight:700;font-family:'Syne',sans-serif}
+.grade.A{background:rgba(16,185,129,.15);color:#6EE7B7;border:1px solid rgba(16,185,129,.3)}
+.grade.B{background:rgba(79,142,247,.15);color:#93C5FD;border:1px solid rgba(79,142,247,.3)}
+.grade.C{background:rgba(245,158,11,.15);color:#FCD34D;border:1px solid rgba(245,158,11,.3)}
+.grade.D{background:rgba(239,68,68,.15);color:#FCA5A5;border:1px solid rgba(239,68,68,.3)}
+
+/* ANIMATE */
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:up .45s ease forwards}
+.d1{animation-delay:.05s;opacity:0}.d2{animation-delay:.12s;opacity:0}
+.d3{animation-delay:.2s;opacity:0}.d4{animation-delay:.28s;opacity:0}
+
+footer{position:relative;z-index:1;text-align:center;padding:1.8rem;
+  color:var(--muted);font-size:.75rem;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ResumeIQ</div>
+  <div class="hbadge">✦ No API Key Needed</div>
+</header>
+
+<div class="hero">
+  <h1>Analyse Your Resume<br/><em>Instantly, No Login</em></h1>
+  <p>Smart rule-based AI analysis — ATS score, skill gaps, keyword matching & personalised tips. Runs 100% in your browser.</p>
+  <div class="no-key-badge">⚡ Works offline · Zero setup · No API key required</div>
+</div>
+
+<div class="wrap">
+
+  <!-- DROP ZONE -->
+  <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <div class="drop-icon">📄</div>
+    <h3>Drop your resume here</h3>
+    <p>Supports .txt files · or paste text below · Click to browse</p>
+    <input type="file" id="fileInput" accept=".txt"/>
+  </div>
+
+  <div class="file-tag" id="fileTag">✅ <span id="fileName">file loaded</span></div>
+
+  <div class="divider">or paste your resume</div>
+
+  <div class="field">
+    <div class="sec-label">Resume Text</div>
+    <textarea id="resumeText" placeholder="Paste your full resume here — work experience, education, skills, projects, achievements...&#10;&#10;The more detail you include, the more accurate the analysis."></textarea>
+  </div>
+
+  <div class="row2">
+    <div>
+      <div class="sec-label">Target Job Role</div>
+      <input type="text" id="jobRole" placeholder="e.g. Data Scientist"/>
+    </div>
+    <div>
+      <div class="sec-label">Experience Level</div>
+      <select id="expLevel">
+        <option value="fresher">Fresher / Student</option>
+        <option value="junior">Junior (1–2 yrs)</option>
+        <option value="mid">Mid-level (3–5 yrs)</option>
+        <option value="senior">Senior (5+ yrs)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="sec-label">Quick Role Presets</div>
+  <div class="chips" id="chips">
+    <div class="chip on" data-r="Data Scientist">Data Scientist</div>
+    <div class="chip" data-r="Machine Learning Engineer">ML Engineer</div>
+    <div class="chip" data-r="Full Stack Developer">Full Stack Dev</div>
+    <div class="chip" data-r="Frontend Developer">Frontend Dev</div>
+    <div class="chip" data-r="Backend Developer">Backend Dev</div>
+    <div class="chip" data-r="Data Analyst">Data Analyst</div>
+    <div class="chip" data-r="DevOps Engineer">DevOps</div>
+    <div class="chip" data-r="UI/UX Designer">UI/UX Designer</div>
+  </div>
+
+  <div class="loader" id="loader"></div>
+  <button class="btn" id="analyseBtn" onclick="run()">✦ Analyse My Resume</button>
+
+  <!-- ═══════════ RESULTS ═══════════ -->
+  <div id="results">
+    <div class="res-hdr">
+      <h2>📊 Analysis Report</h2>
+      <button class="reset-btn" onclick="reset()">↩ New Analysis</button>
+    </div>
+
+    <!-- SCORE -->
+    <div class="score-card fade d1">
+      <div class="ring-wrap">
+        <svg width="108" height="108" viewBox="0 0 108 108">
+          <circle cx="54" cy="54" r="46" fill="none" stroke="#1C2438" stroke-width="8"/>
+          <circle cx="54" cy="54" r="46" fill="none" stroke="url(#rg)" stroke-width="8"
+            stroke-linecap="round" id="ringCircle" stroke-dasharray="289.0" stroke-dashoffset="289.0"/>
+          <defs>
+            <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#4F8EF7"/>
+              <stop offset="100%" stop-color="#7C3AED"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="ring-num" id="ringNum">0<span>/ 100</span></div>
+      </div>
+      <div class="score-info">
+        <h3 id="scoreTitle">—</h3>
+        <div style="margin-bottom:.5rem" id="gradeBadge"></div>
+        <p id="scoreDesc">—</p>
+      </div>
+    </div>
+
+    <!-- METRICS -->
+    <div class="metrics fade d2" id="metGrid">
+      <div class="met" id="m0"><div class="met-lbl">ATS Compatibility</div><div class="met-val" id="mv0">—</div><div class="met-sub" id="ms0">—</div><div class="pbar"><div class="pfill" id="mb0" style="width:0"></div></div></div>
+      <div class="met" id="m1"><div class="met-lbl">Skills Coverage</div><div class="met-val" id="mv1">—</div><div class="met-sub" id="ms1">—</div><div class="pbar"><div class="pfill" id="mb1" style="width:0"></div></div></div>
+      <div class="met" id="m2"><div class="met-lbl">Impact Language</div><div class="met-val" id="mv2">—</div><div class="met-sub" id="ms2">—</div><div class="pbar"><div class="pfill" id="mb2" style="width:0"></div></div></div>
+      <div class="met" id="m3"><div class="met-lbl">Format & Structure</div><div class="met-val" id="mv3">—</div><div class="met-sub" id="ms3">—</div><div class="pbar"><div class="pfill" id="mb3" style="width:0"></div></div></div>
+    </div>
+
+    <!-- SKILLS GRID -->
+    <div class="grid2 fade d3">
+      <div class="card">
+        <div class="ch">✅ Detected Skills</div>
+        <div class="tags" id="detSkills"></div>
+      </div>
+      <div class="card">
+        <div class="ch">⚠️ Missing Key Skills</div>
+        <div class="tags" id="misSkills"></div>
+      </div>
+    </div>
+
+    <!-- ATS BREAKDOWN -->
+    <div class="card fade d3" style="margin-bottom:1rem">
+      <div class="ch">🤖 ATS Compatibility Breakdown</div>
+      <div id="atsRows"></div>
+    </div>
+
+    <!-- FULL ANALYSIS -->
+    <div class="card fade d4" style="margin-bottom:1rem">
+      <div class="ch">🧠 Detailed Feedback</div>
+      <div class="analysis-text" id="analysisText"></div>
+    </div>
+
+    <!-- SUGGESTIONS -->
+    <div class="card fade d4">
+      <div class="ch">🚀 Top Improvements</div>
+      <ul class="sug-list" id="sugList"></ul>
+    </div>
+  </div>
+</div>
+
+<footer>ResumeIQ · Web Technology & Data Science Project · Runs 100% in your browser</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  KNOWLEDGE BASE — Role-specific skill sets
+// ═══════════════════════════════════════════════════════════
+const ROLE_SKILLS = {
+  "Data Scientist": {
+    must: ["python","machine learning","statistics","data analysis","pandas","numpy","scikit-learn","sql","matplotlib","data visualization","jupyter","deep learning","tensorflow","keras","nlp","feature engineering","model evaluation","regression","classification"],
+    good: ["r","spark","hadoop","tableau","powerbi","mongodb","docker","git","aws","gcp","pyspark","xgboost","seaborn","plotly","a/b testing"]
+  },
+  "Machine Learning Engineer": {
+    must: ["python","machine learning","tensorflow","pytorch","deep learning","model deployment","scikit-learn","numpy","pandas","rest api","docker","git","feature engineering","neural networks","mlops","model training","data pipeline"],
+    good: ["kubernetes","aws sagemaker","fastapi","flask","spark","airflow","mlflow","ci/cd","gcp","azure","cuda","gpu","onnx","model optimization"]
+  },
+  "Full Stack Developer": {
+    must: ["javascript","html","css","react","node.js","sql","git","rest api","mongodb","express","responsive design","typescript","database","backend","frontend"],
+    good: ["vue","angular","nextjs","graphql","docker","kubernetes","aws","redis","postgresql","mysql","testing","jest","webpack","ci/cd","agile"]
+  },
+  "Frontend Developer": {
+    must: ["javascript","html","css","react","responsive design","git","typescript","webpack","css3","html5","dom","api integration","accessibility","ui design"],
+    good: ["vue","angular","sass","tailwind","nextjs","testing","jest","figma","performance optimization","seo","redux","graphql","animations"]
+  },
+  "Backend Developer": {
+    must: ["python","java","node.js","sql","rest api","git","database","postgresql","mysql","server","authentication","docker","security","microservices"],
+    good: ["kubernetes","redis","mongodb","rabbitmq","kafka","aws","gcp","ci/cd","testing","graphql","grpc","nginx","linux","bash"]
+  },
+  "Data Analyst": {
+    must: ["sql","excel","python","data analysis","tableau","powerbi","statistics","data visualization","reporting","pandas","pivot tables","dashboards"],
+    good: ["r","machine learning","google analytics","bigquery","snowflake","dbt","etl","powerpoint","storytelling","looker","matplotlib","numpy"]
+  },
+  "DevOps Engineer": {
+    must: ["docker","kubernetes","ci/cd","linux","bash","git","jenkins","aws","terraform","ansible","monitoring","networking","security","cloud"],
+    good: ["azure","gcp","prometheus","grafana","elk","helm","argocd","python","go","puppet","chef","nagios","nginx","load balancing"]
+  },
+  "UI/UX Designer": {
+    must: ["figma","user research","wireframing","prototyping","usability testing","design systems","ui design","ux design","typography","color theory","sketch","adobe xd","user journey"],
+    good: ["html","css","javascript","invision","zeplin","motion design","accessibility","responsive design","information architecture","a/b testing","analytics","miro"]
+  }
+};
+
+// Generic fallback skills
+const GENERIC_SKILLS = {
+  must: ["communication","teamwork","problem solving","git","agile","documentation","presentation"],
+  good: ["leadership","project management","time management","analytical thinking","creativity"]
+};
+
+// ═══════════════════════════════════════════════════════════
+//  ACTION VERBS (strong impact words)
+// ═══════════════════════════════════════════════════════════
+const ACTION_VERBS = [
+  "achieved","built","created","designed","developed","implemented","improved","increased",
+  "launched","led","managed","optimised","reduced","streamlined","delivered","engineered",
+  "architected","deployed","automated","accelerated","boosted","transformed","initiated",
+  "established","collaborated","spearheaded","generated","scaled","solved","analysed",
+  "integrated","mentored","trained","coordinated","executed","enhanced","drove","pioneered"
+];
+
+// ═══════════════════════════════════════════════════════════
+//  SECTION KEYWORDS (ATS)
+// ═══════════════════════════════════════════════════════════
+const SECTIONS = ["experience","education","skills","projects","objective","summary",
+  "achievements","certifications","internship","work experience","technical skills",
+  "professional experience","publications","awards","languages","contact","profile"];
+
+// ═══════════════════════════════════════════════════════════
+//  CONTACT PATTERNS
+// ═══════════════════════════════════════════════════════════
+const CONTACT_PATTERNS = [
+  /[\w.-]+@[\w.-]+\.\w{2,}/,                    // email
+  /(\+\d{1,3}[\s-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/,  // phone
+  /linkedin\.com\/in\//i,                         // linkedin
+  /github\.com\//i,                               // github
+];
+
+// ═══════════════════════════════════════════════════════════
+//  QUANTIFIER PATTERNS
+// ═══════════════════════════════════════════════════════════
+const QUANT_PATTERNS = [
+  /\d+\s*%/g, /\d+\s*(million|billion|thousand|lakh|crore)/gi,
+  /\$\d+/g, /₹\d+/g, /\d+\+\s*(users|customers|clients|people|students|employees)/gi,
+  /increased.*by\s*\d+/gi, /reduced.*by\s*\d+/gi, /improved.*by\s*\d+/gi,
+  /\d+\s*(projects|applications|systems|products|features|modules)/gi
+];
+
+// ═══════════════════════════════════════════════════════════
+//  MAIN ANALYSIS ENGINE
+// ═══════════════════════════════════════════════════════════
+function analyseResume(text, role, expLevel) {
+  const lower = text.toLowerCase();
+  const words = lower.split(/\s+/);
+  const lines = text.split('\n').filter(l => l.trim());
+  const wc = words.length;
+
+  // ── 1. SKILL DETECTION ──────────────────────────────────
+  const roleData = ROLE_SKILLS[role] || GENERIC_SKILLS;
+  const allMust = roleData.must || [];
+  const allGood = roleData.good || [];
+
+  const detectedMust = allMust.filter(s => lower.includes(s.toLowerCase()));
+  const detectedGood = allGood.filter(s => lower.includes(s.toLowerCase()));
+  const missingMust  = allMust.filter(s => !lower.includes(s.toLowerCase()));
+
+  const skillScore = Math.round(
+    (detectedMust.length / Math.max(allMust.length, 1)) * 75 +
+    (detectedGood.length / Math.max(allGood.length, 1)) * 25
+  );
+
+  // ── 2. ACTION VERBS / IMPACT ─────────────────────────────
+  const foundVerbs = ACTION_VERBS.filter(v => lower.includes(v));
+  const verbDensity = foundVerbs.length;
+  const impactScore = Math.min(100, Math.round(
+    (verbDensity >= 10 ? 90 : verbDensity >= 6 ? 75 : verbDensity >= 3 ? 58 : verbDensity >= 1 ? 40 : 20) +
+    (QUANT_PATTERNS.some(p => p.test(text)) ? 10 : 0)
+  ));
+
+  // Reset lastIndex on global regexes
+  QUANT_PATTERNS.forEach(p => { if(p.global) p.lastIndex = 0; });
+  const quantCount = QUANT_PATTERNS.reduce((acc, p) => {
+    const m = text.match(p); return acc + (m ? m.length : 0);
+  }, 0);
+
+  // ── 3. FORMAT & STRUCTURE ────────────────────────────────
+  const foundSections = SECTIONS.filter(s => lower.includes(s));
+  const hasBullets = /[•\-\*▸►▪◦]/.test(text) || /^\s*[-*•]/m.test(text);
+  const hasContactInfo = CONTACT_PATTERNS.filter(p => p.test(text)).length;
+  const pageEst = Math.round(wc / 250); // ~250 words per page
+  const goodLength = pageEst >= 1 && pageEst <= 2;
+  const hasName = /^[A-Z][a-z]+\s[A-Z][a-z]+/.test(text.trim());
+
+  const formatScore = Math.round(
+    (foundSections.length >= 5 ? 30 : foundSections.length >= 3 ? 22 : foundSections.length >= 2 ? 15 : 8) +
+    (hasBullets ? 20 : 0) +
+    (hasContactInfo >= 2 ? 25 : hasContactInfo === 1 ? 15 : 0) +
+    (goodLength ? 15 : 8) +
+    (hasName ? 10 : 0)
+  );
+
+  // ── 4. ATS SCORE ─────────────────────────────────────────
+  // Keyword density relative to job role
+  const totalRoleKeywords = [...allMust, ...allGood];
+  const matchedKeywords = totalRoleKeywords.filter(k => lower.includes(k.toLowerCase()));
+  const keywordDensity = Math.round((matchedKeywords.length / Math.max(totalRoleKeywords.length, 1)) * 100);
+
+  const atsScore = Math.round(
+    keywordDensity * 0.40 +
+    (hasContactInfo >= 2 ? 100 : hasContactInfo * 40) * 0.15 +
+    (foundSections.length >= 4 ? 100 : foundSections.length * 22) * 0.20 +
+    (quantCount >= 3 ? 100 : quantCount * 28) * 0.15 +
+    Math.min(100, verbDensity * 10) * 0.10
+  );
+
+  // ── 5. OVERALL SCORE ─────────────────────────────────────
+  const overall = Math.round(atsScore * 0.30 + skillScore * 0.25 + impactScore * 0.25 + formatScore * 0.20);
+
+  // ── 6. ATS DETAILED CHECKS ───────────────────────────────
+  const atsChecks = [
+    { label: "Keyword Density",         score: Math.min(100, keywordDensity) },
+    { label: "Contact Info Present",    score: Math.min(100, hasContactInfo * 45) },
+    { label: "Standard Section Headers",score: Math.min(100, Math.round(foundSections.length / 6 * 100)) },
+    { label: "Quantified Achievements", score: Math.min(100, quantCount * 22) },
+    { label: "Action Verbs Used",       score: Math.min(100, verbDensity * 9) },
+    { label: "Appropriate Length",      score: goodLength ? 90 : pageEst === 0 ? 15 : 55 },
+  ];
+
+  // ── 7. GRADE ─────────────────────────────────────────────
+  const grade = overall >= 80 ? "A" : overall >= 65 ? "B" : overall >= 50 ? "C" : "D";
+  const gradeLabels = { A:"Excellent", B:"Good", C:"Needs Work", D:"Weak" };
+
+  // ── 8. TITLE + DESC ──────────────────────────────────────
+  const titles = {
+    A: "Strong Resume 🎯",
+    B: "Solid Foundation 📈",
+    C: "Needs Improvement 🔧",
+    D: "Significant Work Needed ⚠️"
+  };
+
+  const expContext = { fresher:"as a fresher/student", junior:"for a junior candidate", mid:"for a mid-level professional", senior:"for a senior professional" };
+  const ctx = expContext[expLevel] || "overall";
+
+  const desc = buildDescription(overall, skillScore, atsScore, impactScore, formatScore, role, detectedMust, missingMust, verbDensity, quantCount, foundSections, hasContactInfo, ctx);
+
+  // ── 9. SUGGESTIONS ───────────────────────────────────────
+  const suggestions = buildSuggestions(atsScore, skillScore, impactScore, formatScore, missingMust, verbDensity, quantCount, hasContactInfo, foundSections, role, expLevel);
+
+  return {
+    overall, grade, gradeLabel: gradeLabels[grade],
+    title: titles[grade],
+    desc,
+    atsScore: Math.min(100, atsScore),
+    skillScore: Math.min(100, skillScore),
+    impactScore: Math.min(100, impactScore),
+    formatScore: Math.min(100, formatScore),
+    detectedSkills: [...detectedMust, ...detectedGood.slice(0, 8)],
+    missingSkills: missingMust.slice(0, 10),
+    atsChecks,
+    suggestions,
+    analysis: desc
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DESCRIPTION GENERATOR
+// ═══════════════════════════════════════════════════════════
+function buildDescription(overall, skillScore, atsScore, impactScore, formatScore, role, detSkills, misSkills, verbs, quants, sections, contact, ctx) {
+  const parts = [];
+
+  if (overall >= 80) {
+    parts.push(`Your resume demonstrates strong alignment with a ${role} role ${ctx}. The content is well-structured and shows good coverage of relevant technical competencies.`);
+  } else if (overall >= 65) {
+    parts.push(`Your resume has a solid foundation for a ${role} position ${ctx}. There are several clear areas to strengthen before applying to competitive roles.`);
+  } else if (overall >= 50) {
+    parts.push(`Your resume needs targeted improvements to be competitive for a ${role} role ${ctx}. The gaps identified below, once addressed, can significantly boost your chances.`);
+  } else {
+    parts.push(`Your resume requires substantial work before it can effectively compete for ${role} positions ${ctx}. Focus on the key improvements listed to transform it quickly.`);
+  }
+
+  if (skillScore >= 70) {
+    parts.push(`Your skills section shows strong coverage — ${detSkills.slice(0,4).join(', ')} and others are clearly present, which is excellent for ATS filtering.`);
+  } else if (detSkills.length > 0) {
+    parts.push(`You've listed some relevant skills like ${detSkills.slice(0,3).join(', ')}, but there are ${misSkills.length} important keywords missing — particularly ${misSkills.slice(0,3).join(', ')}.`);
+  } else {
+    parts.push(`The skills section needs a major overhaul. Key technologies like ${misSkills.slice(0,4).join(', ')} are absent, which will cause most ATS systems to filter out your resume immediately.`);
+  }
+
+  if (impactScore >= 70) {
+    parts.push(`Your resume uses strong action verbs and ${quants > 0 ? `quantified ${quants} achievement(s) with numbers — recruiters love measurable impact` : 'impact language — adding numbers to quantify achievements would make it even stronger'}.`);
+  } else if (verbs >= 2) {
+    parts.push(`You've used some action verbs but the language could be stronger. Replace passive phrases with power verbs like "engineered", "optimised", "delivered" and add metrics to quantify your impact.`);
+  } else {
+    parts.push(`The resume lacks strong action language. Every bullet point should start with an impactful verb and include a measurable result — e.g. "Built a recommendation engine that improved click-through by 23%".`);
+  }
+
+  if (formatScore >= 70) {
+    parts.push(`The structure is clean and ATS-friendly — ${sections.length} standard sections detected${contact >= 2 ? ' with complete contact information' : ''}. Keep this consistent formatting throughout.`);
+  } else {
+    const missing = contact < 2 ? ' Make sure email and phone number are clearly visible at the top.' : '';
+    parts.push(`Format improvements are needed — only ${sections.length} standard sections detected.${missing} Use consistent headings and bullet points to improve scannability for both ATS and human readers.`);
+  }
+
+  return parts.join(' ');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SUGGESTIONS GENERATOR
+// ═══════════════════════════════════════════════════════════
+function buildSuggestions(atsScore, skillScore, impactScore, formatScore, misSkills, verbs, quants, contact, sections, role, expLevel) {
+  const pool = [];
+
+  if (contact < 2)
+    pool.push("Add complete contact information at the top — full name, email, phone number, LinkedIn URL, and GitHub/portfolio link.");
+  if (misSkills.length > 3)
+    pool.push(`Add these missing ${role} keywords to your skills section: ${misSkills.slice(0,5).join(', ')}. Include them naturally in project descriptions too.`);
+  if (verbs < 4)
+    pool.push("Start every bullet point with a strong action verb — replaced, achieved, developed, optimised, delivered, spearheaded. Avoid starting with 'I' or passive voice.");
+  if (quants === 0)
+    pool.push("Quantify your achievements with numbers — 'Built a web scraper' becomes 'Built a web scraper that processed 50,000 records daily, reducing manual effort by 80%'.");
+  if (sections.length < 4)
+    pool.push("Add missing resume sections — at minimum: Summary/Objective, Technical Skills, Experience/Projects, Education, and Certifications.");
+  if (atsScore < 60)
+    pool.push(`Tailor this resume specifically for ${role} positions — mirror the exact keywords from job descriptions you're applying to, as ATS systems do literal keyword matching.`);
+  if (skillScore < 60)
+    pool.push(`Build and add projects demonstrating missing skills (${misSkills.slice(0,3).join(', ')}) — even small personal projects on GitHub demonstrate capability to recruiters.`);
+  if (impactScore < 55)
+    pool.push("Transform vague statements into impact stories — use the STAR format: Situation, Task, Action, Result. Every experience line should answer 'so what?'.");
+  if (expLevel === "fresher" || expLevel === "junior")
+    pool.push("Highlight academic projects, hackathons, open-source contributions, and internships prominently — for entry-level roles, demonstrable projects outweigh experience.");
+  if (formatScore < 55)
+    pool.push("Use a clean single-column format. Avoid tables, graphics, and unusual fonts — ATS systems often fail to parse complex layouts, causing your resume to be discarded.");
+
+  // Ensure we always have 5
+  const extras = [
+    `Add a 2–3 line professional summary at the top targeting ${role} positions specifically.`,
+    "Keep your resume to 1 page if under 3 years experience, 2 pages maximum otherwise.",
+    "List certifications with dates — platforms like Coursera, Kaggle, AWS, or Google Certificates add credibility.",
+    "Use consistent date formatting (e.g. Jan 2023 – Present) and reverse chronological order throughout.",
+    "Proofread for spelling and grammar — run it through Grammarly and have a peer review it."
+  ];
+  extras.forEach(e => pool.push(e));
+
+  return pool.slice(0, 5);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI WIRING
+// ═══════════════════════════════════════════════════════════
+document.querySelectorAll('.chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+    document.getElementById('jobRole').value = c.dataset.r;
+  });
+});
+
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); loadFile(e.dataTransfer.files[0]); });
+document.getElementById('fileInput').addEventListener('change', e => loadFile(e.target.files[0]));
+
+function loadFile(f) {
+  if (!f) return;
+  document.getElementById('fileName').textContent = f.name + ' loaded';
+  document.getElementById('fileTag').classList.add('show');
+  const r = new FileReader();
+  r.onload = e => document.getElementById('resumeText').value = e.target.result;
+  r.readAsText(f);
+}
+
+function clamp(n) { return Math.max(0, Math.min(100, n)); }
+function cls(n) { return n >= 70 ? 'g' : n >= 45 ? 'y' : 'r'; }
+
+function run() {
+  const text = document.getElementById('resumeText').value.trim();
+  if (!text || text.length < 80) { alert('Please paste more resume content (at least a few sentences).'); return; }
+
+  const role = document.getElementById('jobRole').value.trim() ||
+    (document.querySelector('.chip.on')?.dataset.r) || 'Data Scientist';
+  const exp  = document.getElementById('expLevel').value;
+
+  const btn = document.getElementById('analyseBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analysing...';
+  document.getElementById('loader').classList.add('on');
+  document.getElementById('results').style.display = 'none';
+
+  // Simulate processing delay for realism
+  setTimeout(() => {
+    try {
+      const res = analyseResume(text, role, exp);
+      render(res);
+    } catch(e) {
+      alert('Analysis error: ' + e.message);
+    }
+    btn.disabled = false;
+    btn.innerHTML = '✦ Analyse My Resume';
+    document.getElementById('loader').classList.remove('on');
+  }, 1200);
+}
+
+function render(r) {
+  // Show
+  const el = document.getElementById('results');
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Ring
+  const s = clamp(r.overall);
+  document.getElementById('ringNum').innerHTML = s + '<span>/ 100</span>';
+  setTimeout(() => {
+    const offset = 289 - (s / 100) * 289;
+    const circ = document.getElementById('ringCircle');
+    circ.style.transition = 'stroke-dashoffset 1.4s ease';
+    circ.style.strokeDashoffset = offset;
+    const color = s >= 70 ? '#10B981' : s >= 50 ? '#F59E0B' : '#EF4444';
+    circ.style.stroke = color;
+    document.querySelector('.ring-num').style.color = color;
+  }, 100);
+
+  document.getElementById('scoreTitle').textContent = r.title;
+  document.getElementById('gradeBadge').innerHTML = `<span class="grade ${r.grade}">${r.grade} — ${r.gradeLabel}</span>`;
+  document.getElementById('scoreDesc').textContent = '';
+  typewriter(document.getElementById('scoreDesc'), r.desc.split(' ').slice(0,30).join(' ') + '...', 18);
+
+  // Metrics
+  const mets = [
+    { s: r.atsScore,    sub: 'ATS keyword match' },
+    { s: r.skillScore,  sub: 'Role skills covered' },
+    { s: r.impactScore, sub: 'Strong language' },
+    { s: r.formatScore, sub: 'Readability' },
+  ];
+  mets.forEach((m, i) => {
+    const c = clamp(m.s);
+    document.getElementById('mv' + i).textContent = c + '%';
+    document.getElementById('ms' + i).textContent = m.sub;
+    document.getElementById('m'  + i).className   = 'met ' + cls(c);
+    setTimeout(() => { document.getElementById('mb' + i).style.width = c + '%'; }, 400 + i * 80);
+  });
+
+  // Skills
+  const detEl = document.getElementById('detSkills');
+  detEl.innerHTML = r.detectedSkills.length
+    ? r.detectedSkills.map(s => `<span class="tag sk">${s}</span>`).join('')
+    : '<span style="color:var(--muted);font-size:.82rem">No matching skills detected</span>';
+
+  const misEl = document.getElementById('misSkills');
+  misEl.innerHTML = r.missingSkills.length
+    ? r.missingSkills.map(s => `<span class="tag ms">${s}</span>`).join('')
+    : '<span class="tag ok">All key skills present ✓</span>';
+
+  // ATS rows
+  document.getElementById('atsRows').innerHTML = r.atsChecks.map(c => {
+    const v = clamp(c.score);
+    const col = v >= 70 ? 'var(--green)' : v >= 45 ? 'var(--yellow)' : 'var(--red)';
+    return `<div class="ats-row">
+      <span class="ats-lbl">${c.label}</span>
+      <div class="ats-bar"><div class="pbar"><div class="pfill" style="width:${v}%;background:${col}"></div></div></div>
+      <span class="ats-num" style="color:${col}">${v}%</span>
+    </div>`;
+  }).join('');
+
+  // Full analysis
+  document.getElementById('analysisText').innerHTML = r.analysis
+    .split('. ')
+    .reduce((acc, s, i) => {
+      acc += s + '. ';
+      if ((i + 1) % 2 === 0) acc += '</p><p>';
+      return acc;
+    }, '<p>') + '</p>';
+
+  // Suggestions
+  document.getElementById('sugList').innerHTML = r.suggestions.map(s => `<li>${s}</li>`).join('');
+}
+
+function typewriter(el, text, delay) {
+  let i = 0;
+  el.textContent = '';
+  const t = setInterval(() => {
+    el.textContent += text[i++];
+    if (i >= text.length) clearInterval(t);
+  }, delay);
+}
+
+function reset() {
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('resumeText').value = '';
+  document.getElementById('fileTag').classList.remove('show');
+  document.getElementById('ringCircle').style.strokeDashoffset = '289';
+  document.getElementById('ringCircle').style.transition = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Style focus
+document.querySelectorAll('input,select,textarea').forEach(el => {
+  el.addEventListener('focus', () => el.style.borderColor = 'var(--accent)');
+  el.addEventListener('blur',  () => el.style.borderColor = 'var(--border)');
+});
+</script>
+</body>
+</html>
